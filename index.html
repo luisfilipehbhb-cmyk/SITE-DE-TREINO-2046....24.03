@@ -1,0 +1,3117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+    <title>Minhas Anotações</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Anotações">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 999;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .notes-area {
+            padding: 0;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 100vh;
+            height: auto;
+            border: none;
+            font-size: 16px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            
+            /* MARGEM ESQUERDA GRANDE PARA FACILITAR SELEÇÃO */
+            padding: 20px 20px 20px 60px;
+            
+            /* Aparência */
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            color: #333;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            
+            /* CAPS LOCK SEMPRE ATIVADO */
+            text-transform: uppercase;
+        }
+
+        textarea::placeholder {
+            color: #999;
+        }
+
+        /* Container de edição que permite texto e imagens */
+        .editor-container {
+            position: relative;
+            min-height: 500px;
+            padding: 20px 20px 20px 60px;
+            font-size: 16px;
+            line-height: 1.6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            color: #333;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            outline: none;
+        }
+
+        .editor-container:empty:before {
+            content: attr(data-placeholder);
+            color: #999;
+        }
+
+        /* Área clicável para escrever */
+        .notes-wrapper {
+            position: relative;
+            cursor: text;
+            min-height: 100vh;
+        }
+
+        .notes-area {
+            position: relative;
+            padding-top: 120px;
+        }
+
+        .toolbar-top {
+            position: fixed;
+            top: 69px;
+            right: 0;
+            display: flex;
+            flex-direction: row;
+            gap: 4px;
+            z-index: 1001;
+            padding: 6px 8px;
+            align-items: center;
+            background: rgba(255,255,255,0.85);
+            border-radius: 0 0 0 10px;
+        }
+
+        .toolbar {
+            position: fixed;
+            right: 15px;
+            top: 180px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 1000;
+        }
+
+        .toolbar.selection-active,
+        .toolbar-top.selection-active {
+            pointer-events: none;
+        }
+
+        button {
+            padding: 10px 12px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: 500;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button:hover {
+            background: #45a049;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .btn-secondary {
+            background: #2196F3;
+        }
+
+        .btn-secondary:hover {
+            background: #0b7dda;
+        }
+
+        .btn-danger {
+            background: #f44336;
+        }
+
+        .btn-danger:hover {
+            background: #da190b;
+        }
+
+        .btn-upload {
+            background: #FF9800;
+        }
+
+        .btn-upload:hover {
+            background: #F57C00;
+        }
+
+        .btn-pink {
+            background: #E91E63;
+        }
+
+        .btn-pink:hover {
+            background: #C2185B;
+        }
+
+        .btn-spacing {
+            background: #9C27B0;
+        }
+
+        .btn-spacing:hover {
+            background: #7B1FA2;
+        }
+
+        .btn-edit {
+            background: #00BCD4;
+        }
+
+        .btn-edit:hover {
+            background: #0097A7;
+        }
+
+        .btn-backup {
+            background: #009688;
+        }
+
+        .btn-backup:hover {
+            background: #00796B;
+        }
+
+        .btn-import {
+            background: #009688;
+        }
+
+        .btn-import:hover {
+            background: #00796B;
+        }
+
+        .status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 1001;
+            display: none;
+        }
+
+        #imageInput {
+            display: none;
+        }
+
+        #importInput {
+            display: none;
+        }
+
+        /* Estilos para imagens inseridas */
+        .inserted-image {
+            display: block;
+            margin: 20px 0;
+            max-width: 100%;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: move;
+            position: relative;
+        }
+
+        .image-container {
+            position: absolute;
+            display: inline-block;
+            z-index: 100;
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+        }
+
+        .image-container.dragging {
+            opacity: 0.7;
+            z-index: 1000;
+        }
+
+        .image-container.active {
+            box-shadow: 0 0 0 3px #4CAF50;
+        }
+
+        .image-container img {
+            display: block;
+            border: 2px solid #333;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+        .resize-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: #4CAF50;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: nwse-resize;
+            z-index: 10;
+        }
+
+        .resize-handle.bottom-right {
+            bottom: -10px;
+            right: -10px;
+        }
+
+        .delete-image {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 30px;
+            height: 30px;
+            background: #f44336;
+            color: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 11;
+        }
+
+        .delete-image:hover {
+            background: #d32f2f;
+            transform: scale(1.1);
+        }
+
+        .edit-image {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 30px;
+            height: 30px;
+            background: #00BCD4;
+            color: white;
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 11;
+        }
+
+        .edit-image:hover {
+            background: #0097A7;
+            transform: scale(1.1);
+        }
+
+        /* EDITOR DE IMAGEM SOBREPOSTO */
+        .image-editor-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 10000;
+            overflow: hidden;
+        }
+
+        .image-editor-overlay.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-header {
+            background: #333;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .editor-title {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .close-editor {
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .close-editor:hover {
+            background: #d32f2f;
+            transform: scale(1.1);
+        }
+
+        .editor-canvas-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #editorCanvas {
+            max-width: 100%;
+            max-height: 100%;
+            border: 2px solid #555;
+            cursor: crosshair;
+            touch-action: none;
+            display: block;
+        }
+
+        .editor-footer {
+            background: #1a1a1a;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .footer-row {
+            display: flex;
+            gap: 6px;
+            align-items: stretch;
+            width: 100%;
+        }
+
+        .footer-row:first-child {
+            justify-content: stretch;
+        }
+
+        .editor-btn {
+            flex: 1;
+            padding: 11px 8px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .btn-clear {
+            background: #FF5722;
+            color: white;
+        }
+
+        .btn-clear:hover {
+            background: #E64A19;
+        }
+
+        .btn-save {
+            background: #4CAF50;
+            color: white;
+            margin-left: auto;
+        }
+
+        .btn-save:hover {
+            background: #45a049;
+        }
+
+        .tool-selector {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .tool-btn {
+            flex: 1;
+            padding: 11px 8px;
+            background: #2a2a2a;
+            color: white;
+            border: 2px solid #444;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .tool-btn.active {
+            background: #00BCD4;
+            border-color: #00BCD4;
+        }
+
+        .tool-btn:hover {
+            background: #3a3a3a;
+            border-color: #555;
+        }
+
+        .tool-btn.active:hover {
+            background: #0097A7;
+        }
+
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: #2a2a2a;
+            padding: 7px 11px;
+            border-radius: 8px;
+            border: 2px solid #444;
+        }
+
+        .color-picker-label {
+            color: white;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        #colorPicker {
+            width: 44px;
+            height: 30px;
+            border: 2px solid #666;
+            border-radius: 6px;
+            cursor: pointer;
+            background: transparent;
+        }
+
+        /* Caixa flutuante arrastável (fora do editor) */
+        .floating-box {
+            position: absolute;
+            background: #111111;
+            z-index: 200;
+            cursor: move;
+            min-width: 60px;
+            min-height: 40px;
+            border: 2px solid rgba(255,255,255,0.15);
+            border-radius: 2px;
+        }
+
+        .floating-box .delete-box {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 24px;
+            height: 24px;
+            background: #f44336;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            border: 2px solid white;
+            z-index: 10;
+        }
+
+        .floating-box .edit-box {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 24px;
+            height: 24px;
+            background: #00BCD4;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            cursor: pointer;
+            border: 2px solid white;
+            z-index: 10;
+        }
+
+        .floating-box .edit-box:hover {
+            background: #0097A7;
+        }
+
+        .floating-box .resize-box-handle {
+            position: absolute;
+            bottom: -8px;
+            right: -8px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 50%;
+            cursor: nwse-resize;
+            z-index: 10;
+        }
+
+        .btn-floatbox {
+            background: #E91E63;
+        }
+
+        .btn-floatbox:hover {
+            background: #C2185B;
+        }
+
+        .toolbar-divider {
+            display: none;
+        }
+
+        .extra-btn {
+            background: rgba(233, 30, 99, 0.4) !important;
+            opacity: 1;
+            width: 34px !important;
+            height: 34px !important;
+            font-size: 14px !important;
+        }
+
+        .extra-btn:hover {
+            background: rgba(233, 30, 99, 0.7) !important;
+        }
+
+        .extra-btn-black {
+            background: #111 !important;
+        }
+
+        #umbrellaBtn {
+            background: rgba(233, 30, 99, 0.4) !important;
+        }
+
+        #umbrellaBtn:hover {
+            background: rgba(233, 30, 99, 0.7) !important;
+        }
+
+        /* Steppers de tamanho (lápis e texto) */
+        .stepper-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            background: #2a2a2a;
+            padding: 4px 6px;
+            border-radius: 6px;
+            border: 1px solid #444;
+        }
+
+        .stepper-label {
+            font-size: 12px;
+            margin-right: 2px;
+        }
+
+        .stepper-btn {
+            width: 22px;
+            height: 22px;
+            background: #444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            padding: 0;
+            transition: background 0.15s;
+        }
+
+        .stepper-btn:hover {
+            background: #00BCD4;
+        }
+
+        .stepper-btn:active {
+            background: #0097A7;
+        }
+
+        .stepper-value {
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            min-width: 16px;
+            text-align: center;
+        }
+
+        /* Botão de adicionar texto no editor */
+        .btn-text {
+            background: #2a2a2a;
+            color: white;
+        }
+
+        .btn-text:hover {
+            background: #3a3a3a;
+        }
+
+        /* Textarea inline no canvas para texto */
+        .canvas-text-input {
+            position: fixed;
+            z-index: 99999;
+            background: rgba(255,255,255,0.15);
+            border: 2px dashed #fff;
+            color: inherit;
+            font-size: 20px;
+            font-weight: bold;
+            padding: 4px 6px;
+            outline: none;
+            border-radius: 4px;
+            min-width: 80px;
+            min-height: 32px;
+        }
+
+        /* Texto flutuante arrastável dentro do editor */
+        .editor-text-label {
+            touch-action: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✍️ Minhas Anotações</h1>
+        </div>
+
+        <div class="notes-area">
+            <div class="notes-wrapper" id="notesWrapper">
+                <textarea id="notepad" placeholder="Digite suas anotações aqui..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="toolbar-top" id="topToolbar">
+        <button onclick="clearNote()" title="Limpar tudo" class="extra-btn">🗑️</button>
+        <button onclick="document.getElementById('importInput').click()" title="Importar backup" class="extra-btn">📦</button>
+        <button onclick="addSpacing()" title="Adicionar 5 linhas" class="extra-btn">📏</button>
+        <button onclick="copyNote()" title="Copiar texto" class="extra-btn">📋</button>
+        <button onclick="takeScreenshot()" title="Capturar página inteira" class="extra-btn">📸</button>
+        <button onclick="addFloatingBox()" title="Caixa colorida" class="extra-btn extra-btn-black">⬛</button>
+        <button onclick="toggleMainToolbar()" title="Minimizar barra" class="extra-btn" id="umbrellaBtn">🌂</button>
+    </div>
+
+    <div class="toolbar" id="mainToolbar">
+        <button onclick="focusKeyboard()" title="Abrir teclado" class="btn-secondary">⌨️</button>
+        <button id="heartBtn" title="Inserir coração preto" class="btn-secondary">🖤</button>
+        <button id="earthBtn" title="Inserir planeta terra" class="btn-secondary">🌍</button>
+        <button onclick="document.getElementById('imageInput').click()" title="Arquivos / Galeria" class="btn-pink">📁</button>
+        <button onclick="openRearCamera()" title="Câmera" class="btn-pink">📷</button>
+        <button onclick="exportBackup()" title="Backup JSON" class="btn-backup">🖨️</button>
+        <button onclick="saveNote()" title="Salvar (Ctrl+S)">💾</button>
+    </div>
+
+    <!-- Editor de Imagem Sobreposto -->
+    <div class="image-editor-overlay" id="imageEditorOverlay">
+        <div class="editor-header">
+            <div class="editor-title">✏️ Editar Imagem</div>
+            <button class="close-editor" onclick="closeImageEditor()">×</button>
+        </div>
+        
+        <div class="editor-canvas-area">
+            <canvas id="editorCanvas"></canvas>
+        </div>
+
+        <!-- Painel de digitação de texto -->
+        <div id="textInputPanel" style="display:none; position:absolute; bottom:0; left:0; right:0; background:#1a1a1a; padding:10px; flex-direction:row; align-items:center; gap:8px; z-index:10001; border-top:2px solid #444;">
+            <div id="textPanelColor" style="width:28px;height:28px;border-radius:50%;border:2px solid white;flex-shrink:0;"></div>
+            <input id="textInputField" type="text" placeholder="Digite o texto..." autocomplete="off"
+                style="flex:1; background:#333; color:white; border:1px solid #666; border-radius:8px; padding:10px 12px; font-size:18px; font-weight:bold; font-family:Arial,sans-serif; outline:none;">
+            <button id="textPanelConfirm" style="background:#4CAF50;color:white;border:none;border-radius:8px;padding:10px 16px;font-size:18px;font-weight:bold;">✓</button>
+            <button id="textPanelCancel" style="background:#e53935;color:white;border:none;border-radius:8px;padding:10px 14px;font-size:18px;">✕</button>
+        </div>
+        
+        <div class="editor-footer">
+            <!-- Linha 1: ferramentas -->
+            <div class="footer-row">
+                <button class="tool-btn" data-tool="pencil" onclick="selectTool('pencil')" style="flex:1">✏️ Lápis</button>
+                <button class="tool-btn" data-tool="arrow" onclick="selectTool('arrow')" style="flex:1">➡️ Seta</button>
+                <button class="tool-btn" data-tool="box" onclick="selectTool('box')" style="flex:1">⬛ Caixa</button>
+                <button class="tool-btn editor-btn" data-tool="text" onclick="addTextToCanvas()" style="flex:1">✍️ Texto</button>
+                <button class="editor-btn" onclick="undoEditor()" style="background:#555;flex:1">↩️ Desfazer</button>
+            </div>
+            <!-- Linha 2: cor + grossura lápis + tamanho texto + salvar -->
+            <div class="footer-row">
+                <div class="color-picker-wrapper">
+                    <label class="color-picker-label">Cor:</label>
+                    <input type="color" id="colorPicker" value="#FF0000">
+                </div>
+                <div class="stepper-wrapper">
+                    <span class="stepper-label">✏️</span>
+                    <button class="stepper-btn" onclick="changeBrushSize(-1)">−</button>
+                    <span class="stepper-value" id="brushSizePreview">9</span>
+                    <button class="stepper-btn" onclick="changeBrushSize(1)">+</button>
+                </div>
+                <div class="stepper-wrapper">
+                    <span class="stepper-label">🔤</span>
+                    <button class="stepper-btn" onclick="changeTextSize(-1)">−</button>
+                    <span class="stepper-value" id="textSizePreview">4</span>
+                    <button class="stepper-btn" onclick="changeTextSize(1)">+</button>
+                </div>
+                <button class="editor-btn btn-save" onclick="saveEditedImage()">💾 Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="imageInput" accept="image/*">
+    <input type="file" id="cameraInput" accept="image/*" capture="environment">
+    <input type="file" id="importInput" accept=".json">
+
+    <div class="status" id="status"></div>
+
+    <script>
+        const notepad = document.getElementById('notepad');
+        const status = document.getElementById('status');
+        const imageInput = document.getElementById('imageInput');
+        const notesWrapper = document.getElementById('notesWrapper');
+        
+        let currentActiveImage = null;
+        
+        // Editor de imagem
+        const editorOverlay = document.getElementById('imageEditorOverlay');
+        const editorCanvas = document.getElementById('editorCanvas');
+        const ctx = editorCanvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        
+        let currentTool = null;
+        let undoStack = [];
+
+        function pushUndo() {
+            undoStack.push(ctx.getImageData(0, 0, editorCanvas.width, editorCanvas.height));
+            if (undoStack.length > 30) undoStack.shift(); // limitar histórico
+        }
+
+        function undoEditor() {
+            // Desfazer texto flutuante ainda não commitado
+            if (editorTexts && editorTexts.length > 0) {
+                const last = editorTexts.pop();
+                if (last.el && last.el.parentNode) last.el.parentNode.removeChild(last.el);
+                if (selectedTextObj === last) selectedTextObj = null;
+                return;
+            }
+            // Desfazer último desenho no canvas
+            if (undoStack.length > 0) {
+                ctx.putImageData(undoStack.pop(), 0, 0);
+            } else {
+                showStatus('Nada para desfazer');
+            }
+        }
+        let isDrawing = false;
+        let currentEditingContainer = null;
+        let originalImageData = null;
+        let previewBase = null; // estado do canvas antes de iniciar a seta/caixa atual
+        let baseImage = new Image();
+        
+        // Variáveis para desenho
+        let lastX = 0;
+        let lastY = 0;
+        
+        // Variáveis para seta
+        let arrowStart = null;
+        
+        // Variáveis para caixa
+        let boxStart = null;
+
+        // Tamanho do lápis
+        let brushSize = 9;
+        let textSize = 4;
+
+        function changeBrushSize(delta) {
+            brushSize = Math.max(1, Math.min(40, brushSize + delta));
+            document.getElementById('brushSizePreview').textContent = brushSize;
+        }
+
+        let selectedTextObj = null;
+
+        function changeTextSize(delta) {
+            // Se há texto selecionado, redimensiona ele
+            if (selectedTextObj) {
+                selectedTextObj.fontSize = Math.max(6, selectedTextObj.fontSize + delta * 6);
+                selectedTextObj.el.style.fontSize = selectedTextObj.fontSize + 'px';
+                textSize = Math.round(selectedTextObj.fontSize / 6);
+            } else {
+                textSize = Math.max(1, Math.min(20, textSize + delta));
+            }
+            document.getElementById('textSizePreview').textContent = Math.round(selectedTextObj ? selectedTextObj.fontSize / 6 : textSize);
+        }
+
+        // Carregar anotação salva
+        window.addEventListener('load', function() {
+            const saved = localStorage.getItem('myNote');
+            if (saved) {
+                notepad.value = saved;
+            } else {
+                // Se estiver vazio, adicionar 20 linhas em branco
+                notepad.value = '\n'.repeat(20);
+            }
+            loadImages();
+            notepad.focus();
+            // Colocar cursor no início
+            notepad.setSelectionRange(0, 0);
+            autoResizeTextarea();
+            updateWrapperHeight();
+        });
+
+        // Auto-salvar enquanto digita
+        notepad.addEventListener('input', function() {
+            localStorage.setItem('myNote', notepad.value);
+            autoResizeTextarea();
+            updateWrapperHeight();
+        });
+
+        // Desativar toolbars enquanto alça de seleção está sendo arrastada
+        const toolbar = document.querySelector('.toolbar');
+        const topToolbar = document.getElementById('topToolbar');
+        let selectionDragTimer = null;
+
+        function setToolbarsActive(active) {
+            if (active) {
+                toolbar.classList.add('selection-active');
+                topToolbar.classList.add('selection-active');
+            } else {
+                toolbar.classList.remove('selection-active');
+                topToolbar.classList.remove('selection-active');
+            }
+        }
+
+        notepad.addEventListener('touchstart', function() {
+            clearTimeout(selectionDragTimer);
+            setToolbarsActive(true);
+        }, { passive: true });
+
+        notepad.addEventListener('touchmove', function() {
+            clearTimeout(selectionDragTimer);
+            setToolbarsActive(true);
+        }, { passive: true });
+
+        notepad.addEventListener('touchend', function() {
+            clearTimeout(selectionDragTimer);
+            selectionDragTimer = setTimeout(function() {
+                setToolbarsActive(false);
+            }, 400);
+        }, { passive: true });
+
+        notepad.addEventListener('touchcancel', function() {
+            clearTimeout(selectionDragTimer);
+            selectionDragTimer = setTimeout(function() {
+                setToolbarsActive(false);
+            }, 400);
+        }, { passive: true });
+
+        // Auto-resize do textarea
+        function autoResizeTextarea() {
+            // Resetar min-height antes de medir para não inflar
+            notepad.style.minHeight = '';
+            notepad.style.height = 'auto';
+            const newHeight = Math.max(notepad.scrollHeight, window.innerHeight);
+            notepad.style.height = newHeight + 'px';
+        }
+
+        // Atualizar altura do wrapper para conter as imagens
+        function updateWrapperHeight() {
+            const containers = document.querySelectorAll('.image-container');
+            let maxBottom = notepad.scrollHeight;
+            
+            containers.forEach(container => {
+                const y = parseFloat(container.getAttribute('data-y')) || 0;
+                const height = container.offsetHeight;
+                const bottom = y + height + 100;
+                if (bottom > maxBottom) {
+                    maxBottom = bottom;
+                }
+            });
+            
+            notesWrapper.style.minHeight = maxBottom + 'px';
+            notepad.style.minHeight = maxBottom + 'px';
+        }
+
+        // Upload de imagem
+        imageInput.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                // Mostrar status de processamento
+                showStatus('Processando imagem... ⏳');
+                
+                const reader = new FileReader();
+                reader.onload = async function(event) {
+                    try {
+                        // Comprimir para exibição (1MB - mais leve)
+                        const compressedForDisplay = await compressImageForDisplay(event.target.result, 1024);
+                        
+                        // Calcular a posição Y baseada na posição do cursor
+                        const cursorPosition = notepad.selectionStart;
+                        const textBeforeCursor = notepad.value.substring(0, cursorPosition);
+                        const lines = textBeforeCursor.split('\n');
+                        const currentLineNumber = lines.length;
+                        
+                        // Altura de cada linha (aproximadamente 25.6px considerando line-height 1.6 e font-size 16px)
+                        const lineHeight = 25.6;
+                        const topPadding = 20; // padding-top do textarea
+                        
+                        // Posição Y = logo abaixo da linha atual
+                        const yPosition = topPadding + (currentLineNumber * lineHeight) + 10;
+                        
+                        // Posição X = sempre à esquerda (mesma posição do texto, considerando o padding-left de 60px)
+                        const xPosition = 60;
+                        
+                        // Largura máxima de 175px
+                        const maxWidth = 175;
+                        
+                        await createDraggableImage(compressedForDisplay, xPosition, yPosition, maxWidth);
+                    } catch (err) {
+                        console.error('Erro ao processar imagem:', err);
+                        showStatus('Erro ao adicionar imagem ❌');
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+            imageInput.value = '';
+        });
+
+        // Criar imagem arrastável
+        async function createDraggableImage(src, x, y, width) {
+            const container = document.createElement('div');
+            container.className = 'image-container';
+            container.style.position = 'absolute';
+            container.style.left = x + 'px';
+            container.style.top = y + 'px';
+            container.style.width = width + 'px';
+            container.setAttribute('data-x', x);
+            container.setAttribute('data-y', y);
+            container.setAttribute('data-width', width);
+            
+            const img = document.createElement('img');
+            img.src = src;
+            img.style.width = '100%';
+            img.style.height = 'auto';
+            
+            const deleteBtn = document.createElement('div');
+            deleteBtn.className = 'delete-image';
+            deleteBtn.innerHTML = '×';
+            deleteBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (confirm('Deseja excluir esta imagem?')) {
+                    container.remove();
+                    if (currentActiveImage === container) {
+                        currentActiveImage = null;
+                    }
+                    saveImages();
+                    updateWrapperHeight();
+
+                }
+            });
+            
+            const editBtn = document.createElement('div');
+            editBtn.className = 'edit-image';
+            editBtn.innerHTML = '✏️';
+            editBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                openImageEditor(container);
+            });
+            
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'resize-handle bottom-right';
+            
+            container.appendChild(img);
+            container.appendChild(deleteBtn);
+            container.appendChild(editBtn);
+            container.appendChild(resizeHandle);
+            notesWrapper.appendChild(container);
+            
+            // Click para selecionar
+            container.addEventListener('click', function(e) {
+                if (e.target === deleteBtn || e.target === resizeHandle) return;
+                
+                document.querySelectorAll('.image-container').forEach(c => c.classList.remove('active'));
+                container.classList.add('active');
+                currentActiveImage = container;
+            });
+            
+            // Sistema de arrastar
+            let isDragging = false;
+            let dragStartX, dragStartY, elemStartX, elemStartY;
+            
+            container.addEventListener('mousedown', startDrag);
+            container.addEventListener('touchstart', startDrag, { passive: false });
+            
+            function startDrag(e) {
+                if (e.target === deleteBtn || e.target === editBtn || e.target === resizeHandle) return;
+                
+                isDragging = false; // será confirmado no move
+                
+                dragStartX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+                dragStartY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+                
+                elemStartX = parseFloat(container.getAttribute('data-x'));
+                elemStartY = parseFloat(container.getAttribute('data-y'));
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('mouseup', stopDrag);
+                document.addEventListener('touchmove', drag, { passive: false });
+                document.addEventListener('touchend', stopDrag);
+            }
+            
+            function drag(e) {
+                const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+                const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+                
+                const diffX = clientX - dragStartX;
+                const diffY = clientY - dragStartY;
+                
+                // Só começa a arrastar após mover 5px (evita bloquear scroll)
+                if (!isDragging) {
+                    if (Math.abs(diffX) < 5 && Math.abs(diffY) < 5) return;
+                    isDragging = true;
+                    container.classList.add('dragging');
+                }
+                
+                e.preventDefault();
+                
+                const newX = elemStartX + diffX;
+                const newY = elemStartY + diffY;
+                
+                container.style.left = newX + 'px';
+                container.style.top = newY + 'px';
+                container.setAttribute('data-x', newX);
+                container.setAttribute('data-y', newY);
+            }
+            
+            function stopDrag() {
+                if (isDragging) {
+                    isDragging = false;
+                    container.classList.remove('dragging');
+                    saveImages();
+                    updateWrapperHeight();
+                    document.removeEventListener('mousemove', drag);
+                    document.removeEventListener('mouseup', stopDrag);
+                    document.removeEventListener('touchmove', drag);
+                    document.removeEventListener('touchend', stopDrag);
+                }
+            }
+            
+            // Sistema de resize
+            let isResizing = false;
+            let resizeStartX, resizeStartWidth;
+            
+            resizeHandle.addEventListener('mousedown', startResize);
+            resizeHandle.addEventListener('touchstart', startResize, { passive: false });
+            
+            function startResize(e) {
+                isResizing = true;
+                resizeStartX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+                resizeStartWidth = parseInt(container.style.width);
+                e.preventDefault();
+                e.stopPropagation();
+                
+                document.addEventListener('mousemove', resize);
+                document.addEventListener('mouseup', stopResize);
+                document.addEventListener('touchmove', resize, { passive: false });
+                document.addEventListener('touchend', stopResize);
+            }
+            
+            function resize(e) {
+                if (!isResizing) return;
+                
+                const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+                const diff = clientX - resizeStartX;
+                const newWidth = Math.max(100, Math.min(800, resizeStartWidth + diff));
+                
+                container.style.width = newWidth + 'px';
+                container.setAttribute('data-width', newWidth);
+            }
+            
+            function stopResize() {
+                if (isResizing) {
+                    isResizing = false;
+                    saveImages(); // async, mas não precisa await aqui
+                    updateWrapperHeight();
+                    document.removeEventListener('mousemove', resize);
+                    document.removeEventListener('mouseup', stopResize);
+                    document.removeEventListener('touchmove', resize);
+                    document.removeEventListener('touchend', stopResize);
+                }
+            }
+            
+            await saveImages(); // Aguardar o salvamento
+            updateWrapperHeight();
+        }
+
+        // Salvar imagens no localStorage
+        async function saveImages() {
+            const containers = document.querySelectorAll('.image-container');
+            const images = [];
+            
+            for (const container of containers) {
+                const img = container.querySelector('img');
+                
+                // Não recomprimir se já for PNG (editada) — só comprimir JPEG originais
+                let src = img.src;
+                if (!src.startsWith('data:image/png')) {
+                    src = await compressImage(src, 450);
+                }
+                
+                images.push({
+                    src: src,
+                    width: container.getAttribute('data-width'),
+                    x: container.getAttribute('data-x'),
+                    y: container.getAttribute('data-y')
+                });
+            }
+            
+            try {
+                localStorage.setItem('myImages', JSON.stringify(images));
+            } catch (err) {
+                console.error('Erro ao salvar imagens no localStorage:', err);
+            }
+        }
+
+        // Carregar imagens do localStorage
+        function loadImages() {
+            const saved = localStorage.getItem('myImages');
+            if (saved) {
+                const images = JSON.parse(saved);
+                images.forEach(img => {
+                    createDraggableImage(img.src, parseFloat(img.x), parseFloat(img.y), parseFloat(img.width));
+                });
+            }
+        }
+
+        // FUNÇÕES DO EDITOR DE IMAGEM
+        function openImageEditor(imageContainer) {
+            if (!imageContainer) {
+                showStatus('⚠️ Erro ao abrir editor!');
+                return;
+            }
+            
+            currentEditingContainer = imageContainer;
+            const img = imageContainer.querySelector('img');
+            
+            // Carregar imagem no canvas
+            baseImage.src = img.src;
+            baseImage.onload = function() {
+                editorCanvas.width = baseImage.width;
+                editorCanvas.height = baseImage.height;
+                
+                // Desenhar imagem base
+                ctx.drawImage(baseImage, 0, 0);
+                
+                // Salvar estado original
+                originalImageData = ctx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+
+                // Restaurar histórico de undo salvo neste container (se houver)
+                undoStack = [];
+                if (imageContainer._undoHistory && imageContainer._undoHistory.length > 0) {
+                    // Recriar os ImageData a partir dos arrays de pixels salvos
+                    for (const entry of imageContainer._undoHistory) {
+                        const id = new ImageData(
+                            new Uint8ClampedArray(entry.data),
+                            entry.width,
+                            entry.height
+                        );
+                        undoStack.push(id);
+                    }
+                }
+                
+                // Mostrar editor e travar scroll
+                document.querySelector('.container').style.overflowY = 'hidden';
+                editorOverlay.classList.add('active');
+            };
+        }
+
+        function closeImageEditor() {
+            // Remover textos flutuantes sem gravar
+            editorTexts.forEach(function(t) { if (t.el.parentNode) t.el.remove(); });
+            editorTexts = [];
+            editorOverlay.classList.remove('active');
+            document.querySelector('.container').style.overflowY = 'auto';  // libera scroll
+            currentEditingContainer = null;
+            originalImageData = null;
+            selectedTextObj = null;
+            currentTool = null;
+            // Remover active de todos os botões
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            undoStack = [];
+            brushSize = 9;
+            textSize = 4;
+            const bp = document.getElementById('brushSizePreview');
+            const tp = document.getElementById('textSizePreview');
+            if (bp) bp.textContent = 9;
+            if (tp) tp.textContent = 4;
+        }
+
+        let colorBeforeBox = '#FF0000';
+
+        function selectTool(tool) {
+            // Ao sair da caixa, restaurar cor anterior
+            if (currentTool === 'box' && tool !== 'box') {
+                colorPicker.value = colorBeforeBox;
+            }
+
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            const toolEl = document.querySelector(`[data-tool="${tool}"]`);
+            if (toolEl) toolEl.classList.add('active');
+
+            // Ao entrar na caixa, salvar cor atual e trocar pra branco
+            if (tool === 'box') {
+                colorBeforeBox = colorPicker.value;
+                colorPicker.value = '#ffffff';
+            }
+
+            editorCanvas.style.cursor = (tool === 'text') ? 'text' : 'crosshair';
+        }
+
+        function clearDrawing() {
+            if (originalImageData) {
+                ctx.putImageData(originalImageData, 0, 0);
+            }
+            showStatus('Desenho limpo!');
+        }
+
+        function saveEditedImage() {
+            if (!currentEditingContainer) return;
+
+            // Gravar todos os textos flutuantes no canvas antes de exportar
+            commitAllEditorTexts();
+
+            // Se for uma caixa flutuante
+            if (currentEditingContainer._isBox) {
+                const newDataURL = editorCanvas.toDataURL('image/png');
+                const boxCanvas = currentEditingContainer._boxCanvas;
+                const bCtx = boxCanvas.getContext('2d');
+                const img = new Image();
+                img.onload = function() {
+                    bCtx.clearRect(0, 0, boxCanvas.width, boxCanvas.height);
+                    bCtx.drawImage(img, 0, 0, boxCanvas.width, boxCanvas.height);
+                };
+                img.src = newDataURL;
+                // Salvar histórico de undo neste container
+                currentEditingContainer._undoHistory = undoStack.map(id => ({
+                    data: Array.from(id.data),
+                    width: id.width,
+                    height: id.height
+                }));
+                closeImageEditor();
+                showStatus('✅ Caixa salva!');
+                return;
+            }
+
+            // Imagem normal
+            const newImageSrc = editorCanvas.toDataURL('image/png');
+            const imgEl = currentEditingContainer.querySelector('img');
+            imgEl.src = newImageSrc;
+
+            // Salvar histórico de undo neste container para uso futuro
+            currentEditingContainer._undoHistory = undoStack.map(id => ({
+                data: Array.from(id.data),
+                width: id.width,
+                height: id.height
+            }));
+
+            saveImages();
+            closeImageEditor();
+            showStatus('✅ Imagem salva com sucesso!');
+        }
+
+        // Funções de desenho no canvas
+        function getCanvasCoordinates(e) {
+            const rect = editorCanvas.getBoundingClientRect();
+            const scaleX = editorCanvas.width / rect.width;
+            const scaleY = editorCanvas.height / rect.height;
+            
+            const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+            
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        // Mouse/Touch events para desenho
+        editorCanvas.addEventListener('mousedown', startDrawing);
+        editorCanvas.addEventListener('touchstart', startDrawing);
+        editorCanvas.addEventListener('mousemove', draw);
+        editorCanvas.addEventListener('touchmove', draw);
+        editorCanvas.addEventListener('mouseup', stopDrawing);
+        editorCanvas.addEventListener('touchend', stopDrawing);
+        editorCanvas.addEventListener('mouseleave', stopDrawing);
+
+        function startDrawing(e) {
+            // Se ferramenta for texto, deixar o handleTextOnCanvas tratar
+            if (currentTool === 'text') return;
+            e.preventDefault();
+            isDrawing = true;
+            pushUndo(); // salvar estado antes de desenhar
+            
+            const coords = getCanvasCoordinates(e);
+            lastX = coords.x;
+            lastY = coords.y;
+            
+            if (currentTool === 'arrow') {
+                arrowStart = { x: coords.x, y: coords.y };
+                previewBase = ctx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+            } else if (currentTool === 'box') {
+                boxStart = { x: coords.x, y: coords.y };
+                previewBase = ctx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+            }
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            
+            const coords = getCanvasCoordinates(e);
+            
+            if (currentTool === 'pencil') {
+                // Desenho com lápis
+                ctx.strokeStyle = colorPicker.value;
+                ctx.lineWidth = brushSize;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(coords.x, coords.y);
+                ctx.stroke();
+                
+                lastX = coords.x;
+                lastY = coords.y;
+            } else if (currentTool === 'arrow') {
+                // Desenho de seta (preview em tempo real)
+                if (arrowStart) {
+                    // Restaurar estado anterior ao início deste traço (preserva desenhos anteriores)
+                    ctx.putImageData(previewBase, 0, 0);
+                    
+                    // Desenhar preview da seta
+                    drawArrow(arrowStart.x, arrowStart.y, coords.x, coords.y, colorPicker.value);
+                }
+            } else if (currentTool === 'box') {
+                // Desenho de caixa (preview em tempo real)
+                if (boxStart) {
+                    // Restaurar estado anterior ao início deste traço (preserva desenhos anteriores)
+                    ctx.putImageData(previewBase, 0, 0);
+                    
+                    // Desenhar preview da caixa
+                    drawBox(boxStart.x, boxStart.y, coords.x, coords.y, colorPicker.value);
+                }
+            }
+        }
+
+        function stopDrawing(e) {
+            if (!isDrawing) return;
+            
+            if (currentTool === 'arrow' && arrowStart) {
+                const coords = getCanvasCoordinates(e);
+                
+                // Salvar o estado atual como novo original
+                originalImageData = ctx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+            } else if (currentTool === 'box' && boxStart) {
+                const coords = getCanvasCoordinates(e);
+                
+                // Salvar o estado atual como novo original
+                originalImageData = ctx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+            }
+            
+            isDrawing = false;
+            arrowStart = null;
+            boxStart = null;
+        }
+
+        function drawArrow(fromX, fromY, toX, toY, color) {
+            const headLength = 20;
+            const angle = Math.atan2(toY - fromY, toX - fromX);
+            
+            // Linha principal
+            ctx.strokeStyle = color;
+            ctx.lineWidth = brushSize;
+            ctx.lineCap = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.stroke();
+            
+            // Cabeça da seta
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(
+                toX - headLength * Math.cos(angle - Math.PI / 6),
+                toY - headLength * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(
+                toX - headLength * Math.cos(angle + Math.PI / 6),
+                toY - headLength * Math.sin(angle + Math.PI / 6)
+            );
+            ctx.stroke();
+        }
+
+        function drawBox(startX, startY, endX, endY, color) {
+            const width = endX - startX;
+            const height = endY - startY;
+            
+            // Desenhar retângulo preenchido
+            ctx.fillStyle = color;
+            ctx.fillRect(startX, startY, width, height);
+        }
+
+        // ---- SISTEMA DE TEXTOS FLUTUANTES NO EDITOR ----
+        // Os textos ficam como elementos arrastáveis sobre o canvas.
+        // Só são gravados nos pixels quando o usuário clica em Salvar.
+
+        let editorTexts = []; // { el, canvasX, canvasY, text, color, fontSize }
+
+        // Painel de texto
+        let textPanelCoords = null;
+        let textPanelActive = false;
+        let textPreviewSnapshot = null;
+
+        function addTextToCanvas() {
+            selectTool('text');
+            showStatus('Toque na imagem onde quer o texto ✍️');
+        }
+
+        function closeTextPanel(saveText) {
+            const panel = document.getElementById('textInputPanel');
+            const inputField = document.getElementById('textInputField');
+            if (panel.style.display === 'none') return;
+
+            const text = inputField.value.trim();
+            panel.style.display = 'none';
+            textPanelActive = false;
+
+            // Restaurar canvas sem preview
+            if (textPreviewSnapshot) {
+                ctx.putImageData(textPreviewSnapshot, 0, 0);
+                textPreviewSnapshot = null;
+            }
+
+            if (saveText && text && textPanelCoords) {
+                const { coords, rect, scaleX, scaleY, fontSize, color } = textPanelCoords;
+                createFloatingEditorText(text, fontSize, color, coords, rect, scaleX, scaleY);
+            }
+
+            textPanelCoords = null;
+            // NÃO muda ferramenta — fica em 'text'
+        }
+
+        function showTextPanel(coords, rect, scaleX, scaleY) {
+            // Fechar painel anterior sem salvar se estiver aberto
+            closeTextPanel(false);
+
+            const fontSize = Math.max(12, textSize * 6);
+            const color = colorPicker.value;
+
+            // Snapshot limpo do canvas
+            textPreviewSnapshot = ctx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+            textPanelCoords = { coords, rect, scaleX, scaleY, fontSize, color };
+            textPanelActive = true;
+
+            const panel = document.getElementById('textInputPanel');
+            const inputField = document.getElementById('textInputField');
+            const colorDot = document.getElementById('textPanelColor');
+            panel.style.display = 'flex';
+            inputField.value = '';
+            inputField.style.color = color;
+            colorDot.style.background = color;
+
+            // Limpar handlers antigos clonando os botões
+            const confirmBtn = document.getElementById('textPanelConfirm');
+            const cancelBtn = document.getElementById('textPanelCancel');
+            confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+            cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+            document.getElementById('textPanelConfirm').onclick = () => closeTextPanel(true);
+            document.getElementById('textPanelCancel').onclick = () => closeTextPanel(false);
+
+            function drawTextPreview(text) {
+                if (textPreviewSnapshot) ctx.putImageData(textPreviewSnapshot, 0, 0);
+                if (!text) return;
+                const canvasScale = (editorCanvas.width / rect.width + editorCanvas.height / rect.height) / 2;
+                const scaledFont = fontSize * canvasScale;
+                ctx.font = `bold ${scaledFont}px Arial, sans-serif`;
+                const metrics = ctx.measureText(text);
+                const tw = metrics.width;
+                const th = scaledFont;
+                const px = coords.x - tw * 0.02;
+                const py = coords.y;
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(px - scaledFont*0.2, py - th*0.85, tw + scaledFont*0.4, th + scaledFont*0.3, 4);
+                else ctx.rect(px - scaledFont*0.2, py - th*0.85, tw + scaledFont*0.4, th + scaledFont*0.3);
+                ctx.fill();
+                ctx.fillStyle = color;
+                ctx.fillText(text, px, py);
+            }
+
+            drawTextPreview('|');
+            inputField.oninput = () => drawTextPreview((inputField.value || '') + '|');
+            setTimeout(() => inputField.focus(), 50);
+        }
+
+        // Handler de texto no canvas
+        function handleTextOnCanvas(e) {
+            if (currentTool !== 'text') return;
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Se painel aberto: salva se tiver texto, cancela se não — e para aqui
+            if (textPanelActive) {
+                const inputField = document.getElementById('textInputField');
+                const hasText = inputField && inputField.value.trim().length > 0;
+                closeTextPanel(hasText);
+                return; // não abre novo painel neste toque
+            }
+
+            const coords = getCanvasCoordinates(e);
+            const rect = editorCanvas.getBoundingClientRect();
+            const scaleX = rect.width / editorCanvas.width;
+            const scaleY = rect.height / editorCanvas.height;
+
+            showTextPanel(coords, rect, scaleX, scaleY);
+        }
+
+        function createFloatingEditorText(text, fontSize, color, canvasCoords, rect, scaleX, scaleY) {
+            const editorArea = document.querySelector('.editor-canvas-area');
+
+            const el = document.createElement('div');
+            el.className = 'editor-text-label';
+            el.textContent = text;
+            el.style.cssText = `
+                position: absolute;
+                color: #ffffff;
+                font-size: ${fontSize}px;
+                font-family: Arial, sans-serif;
+                font-weight: bold;
+                cursor: move;
+                user-select: none;
+                white-space: nowrap;
+                z-index: 500;
+                padding: 3px 8px;
+                background: ${color};
+                border-radius: 4px;
+                box-shadow: 0 0 0 2px rgba(255,200,0,0.8);
+            `;
+
+            // Posicionar relativo à área do editor
+            const areaRect = editorArea.getBoundingClientRect();
+            const screenX = rect.left + canvasCoords.x * scaleX;
+            const screenY = rect.top + canvasCoords.y * scaleY;
+            let posX = screenX - areaRect.left;
+            let posY = screenY - areaRect.top - fontSize * 0.5;
+            el.style.left = posX + 'px';
+            el.style.top = posY + 'px';
+
+            // Selecionar este texto
+            if (selectedTextObj) {
+                selectedTextObj.el.style.boxShadow = 'none';
+                selectedTextObj.el.style.border = '1px dashed rgba(180,200,255,0.4)';
+            }
+
+            // Botão deletar o texto
+            const delBtn = document.createElement('span');
+            delBtn.textContent = '×';
+            delBtn.style.cssText = `
+                position: absolute;
+                top: -8px; right: -8px;
+                width: 18px; height: 18px;
+                background: #f44336;
+                color: white;
+                border-radius: 50%;
+                font-size: 13px;
+                display: flex; align-items: center; justify-content: center;
+                cursor: pointer;
+                line-height: 1;
+                border: 1px solid white;
+            `;
+            delBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                editorTexts = editorTexts.filter(t => t.el !== el);
+                el.remove();
+            });
+            el.appendChild(delBtn);
+
+            editorArea.style.position = 'relative';
+            editorArea.appendChild(el);
+
+            // Guardar referência com coordenadas no canvas
+            const textObj = { el, canvasCoords: { x: canvasCoords.x, y: canvasCoords.y }, text, color, fontSize, posX, posY };
+            editorTexts.push(textObj);
+            selectedTextObj = textObj;
+
+            // ---- Arrastar o texto ----
+            let isDragging = false, startMouseX, startMouseY, startPosX, startPosY;
+
+            function startTextDrag(ev) {
+                if (ev.target === delBtn) return;
+                // Selecionar este texto
+                if (selectedTextObj && selectedTextObj !== textObj) {
+                    selectedTextObj.el.style.boxShadow = 'none';
+                    selectedTextObj.el.style.border = '1px dashed rgba(180,200,255,0.4)';
+                }
+                selectedTextObj = textObj;
+                el.style.boxShadow = '0 0 0 2px rgba(255,200,0,0.8)';
+                el.style.border = '2px solid rgba(255,255,255,0.9)';
+                isDragging = true;
+                startMouseX = ev.type.includes('touch') ? ev.touches[0].clientX : ev.clientX;
+                startMouseY = ev.type.includes('touch') ? ev.touches[0].clientY : ev.clientY;
+                startPosX = parseFloat(el.style.left);
+                startPosY = parseFloat(el.style.top);
+                ev.preventDefault(); ev.stopPropagation();
+                document.addEventListener('mousemove', doTextDrag);
+                document.addEventListener('mouseup', stopTextDrag);
+                document.addEventListener('touchmove', doTextDrag, { passive: false });
+                document.addEventListener('touchend', stopTextDrag);
+            }
+            function doTextDrag(ev) {
+                if (!isDragging) return;
+                const cx = ev.type.includes('touch') ? ev.touches[0].clientX : ev.clientX;
+                const cy = ev.type.includes('touch') ? ev.touches[0].clientY : ev.clientY;
+                const nx = startPosX + (cx - startMouseX);
+                const ny = startPosY + (cy - startMouseY);
+                el.style.left = nx + 'px';
+                el.style.top = ny + 'px';
+                textObj.posX = nx;
+                textObj.posY = ny;
+                ev.preventDefault();
+            }
+            function stopTextDrag() {
+                if (!isDragging) return;
+                isDragging = false;
+                // Atualizar coordenadas no canvas
+                const areaRect = editorArea.getBoundingClientRect();
+                const canvasRect = editorCanvas.getBoundingClientRect();
+                const sx = editorCanvas.width / canvasRect.width;
+                const sy = editorCanvas.height / canvasRect.height;
+                const absX = areaRect.left + textObj.posX;
+                const absY = areaRect.top + textObj.posY + fontSize * 0.5;
+                textObj.canvasCoords.x = (absX - canvasRect.left) * sx;
+                textObj.canvasCoords.y = (absY - canvasRect.top) * sy;
+                document.removeEventListener('mousemove', doTextDrag);
+                document.removeEventListener('mouseup', stopTextDrag);
+                document.removeEventListener('touchmove', doTextDrag);
+                document.removeEventListener('touchend', stopTextDrag);
+            }
+
+            el.addEventListener('mousedown', startTextDrag);
+            el.addEventListener('touchstart', startTextDrag, { passive: false });
+        }
+
+        // Gravar todos os textos flutuantes no canvas ao salvar
+        function commitAllEditorTexts() {
+            const canvasRect = editorCanvas.getBoundingClientRect();
+            const scaleX = editorCanvas.width / canvasRect.width;
+            const scaleY = editorCanvas.height / canvasRect.height;
+            const scale = (scaleX + scaleY) / 2;
+
+            editorTexts.forEach(function(t) {
+                pushUndo(); // salvar estado antes de cada texto individualmente
+
+                const scaledFont = t.fontSize * scale;
+                ctx.font = `bold ${scaledFont}px Arial, sans-serif`;
+
+                // Medir largura do texto para desenhar o fundo
+                const metrics = ctx.measureText(t.text);
+                const textW = metrics.width;
+                const textH = scaledFont;
+                const padX = scaledFont * 0.2;
+                const padY = scaledFont * 0.15;
+                const bx = t.canvasCoords.x - padX;
+                const by = t.canvasCoords.y + scaledFont * 0.35 - textH * 0.85 - padY;
+                const bw = textW + padX * 2;
+                const bh = textH + padY * 2;
+
+                // Fundo colorido (cor selecionada) + texto branco
+                ctx.fillStyle = t.color;
+                ctx.beginPath();
+                ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, 4) : ctx.rect(bx, by, bw, bh);
+                ctx.fill();
+
+                // Texto por cima
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(t.text, t.canvasCoords.x, t.canvasCoords.y + scaledFont * 0.35);
+            });
+            // Limpar textos flutuantes
+            editorTexts.forEach(function(t) { t.el.remove(); });
+            editorTexts = [];
+        }
+
+        editorCanvas.addEventListener('mousedown', handleTextOnCanvas);
+        editorCanvas.addEventListener('touchstart', handleTextOnCanvas, { passive: false });
+
+        // ---- CAIXA FLUTUANTE (fora do editor) ----
+
+        let mainToolbarVisible = true;
+        function toggleMainToolbar() {
+            const toolbar = document.getElementById('mainToolbar');
+            mainToolbarVisible = !mainToolbarVisible;
+            toolbar.style.display = mainToolbarVisible ? 'flex' : 'none';
+            document.getElementById('umbrellaBtn').style.opacity = mainToolbarVisible ? '1' : '0.4';
+        }
+
+        function addFloatingBox() {
+            const box = document.createElement('div');
+            box.className = 'floating-box';
+            box.style.width = '240px';
+            box.style.height = '140px';
+            box.style.left = '80px';
+            box.style.top = (document.querySelector('.container').scrollTop + 200) + 'px';
+            box.setAttribute('data-x', 80);
+            box.setAttribute('data-y', document.querySelector('.container').scrollTop + 200);
+
+            // Criar canvas interno que representa o "conteúdo" da caixa
+            const boxCanvas = document.createElement('canvas');
+            boxCanvas.width = 240;
+            boxCanvas.height = 140;
+            boxCanvas.style.width = '100%';
+            boxCanvas.style.height = '100%';
+            boxCanvas.style.display = 'block';
+            boxCanvas.style.borderRadius = '2px';
+            // Pintar fundo preto inicial
+            const bCtx = boxCanvas.getContext('2d');
+            bCtx.fillStyle = '#111111';
+            bCtx.fillRect(0, 0, boxCanvas.width, boxCanvas.height);
+
+            // Botão deletar (vermelho, topo direito)
+            const del = document.createElement('div');
+            del.className = 'delete-box';
+            del.innerHTML = '×';
+            del.addEventListener('click', function(e) {
+                e.stopPropagation();
+                box.remove();
+            });
+
+            // Botão editar (lápis, topo esquerdo — igual às fotos)
+            const editBtn = document.createElement('div');
+            editBtn.className = 'edit-box';
+            editBtn.innerHTML = '✏️';
+            editBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                // Abrir o editor de imagem com o canvas da caixa como "imagem"
+                openBoxEditor(box, boxCanvas);
+            });
+
+            // Handle de resize (canto inferior direito)
+            const resizeH = document.createElement('div');
+            resizeH.className = 'resize-box-handle';
+
+            box.appendChild(boxCanvas);
+            box.appendChild(del);
+            box.appendChild(editBtn);
+            box.appendChild(resizeH);
+            notesWrapper.appendChild(box);
+
+            // ---- Arrastar ----
+            let isDrag = false, dsx, dsy, bsx, bsy;
+
+            function startBoxDrag(e) {
+                if (e.target === del || e.target === editBtn || e.target === resizeH) return;
+                isDrag = false; // confirmado no move
+                dsx = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+                dsy = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+                bsx = parseFloat(box.getAttribute('data-x')) || 80;
+                bsy = parseFloat(box.getAttribute('data-y')) || 200;
+                if (e.type !== 'touchstart') { e.preventDefault(); e.stopPropagation(); }
+                document.addEventListener('mousemove', doBoxDrag);
+                document.addEventListener('mouseup', stopBoxDrag);
+                document.addEventListener('touchmove', doBoxDrag, { passive: false });
+                document.addEventListener('touchend', stopBoxDrag);
+            }
+            function doBoxDrag(e) {
+                const cx = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+                const cy = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+                const dx = cx - dsx;
+                const dy = cy - dsy;
+                if (!isDrag) {
+                    if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+                    isDrag = true;
+                    box.style.opacity = '0.85';
+                }
+                e.preventDefault();
+                const nx = bsx + dx;
+                const ny = bsy + dy;
+                box.style.left = nx + 'px';
+                box.style.top = ny + 'px';
+                box.setAttribute('data-x', nx);
+                box.setAttribute('data-y', ny);
+            }
+            function stopBoxDrag() {
+                if (!isDrag) return;
+                isDrag = false;
+                box.style.opacity = '1';
+                document.removeEventListener('mousemove', doBoxDrag);
+                document.removeEventListener('mouseup', stopBoxDrag);
+                document.removeEventListener('touchmove', doBoxDrag);
+                document.removeEventListener('touchend', stopBoxDrag);
+            }
+            box.addEventListener('mousedown', startBoxDrag);
+            box.addEventListener('touchstart', startBoxDrag, { passive: true });
+
+            // ---- Resize ----
+            let isRes = false, rsx, rsy, rwStart, rhStart;
+
+            function startBoxResize(e) {
+                isRes = true;
+                rsx = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+                rsy = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+                rwStart = box.offsetWidth;
+                rhStart = box.offsetHeight;
+                if (e.type !== 'touchstart') { e.preventDefault(); e.stopPropagation(); }
+                document.addEventListener('mousemove', doBoxResize);
+                document.addEventListener('mouseup', stopBoxResize);
+                document.addEventListener('touchmove', doBoxResize, { passive: false });
+                document.addEventListener('touchend', stopBoxResize);
+            }
+            function doBoxResize(e) {
+                if (!isRes) return;
+                const cx = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+                const cy = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+                const newW = Math.max(40, rwStart + (cx - rsx));
+                const newH = Math.max(25, rhStart + (cy - rsy));
+                box.style.width = newW + 'px';
+                box.style.height = newH + 'px';
+                // Redimensionar canvas interno também
+                const imgData = bCtx.getImageData(0, 0, boxCanvas.width, boxCanvas.height);
+                boxCanvas.width = newW;
+                boxCanvas.height = newH;
+                bCtx.putImageData(imgData, 0, 0);
+                e.preventDefault();
+            }
+            function stopBoxResize() {
+                if (!isRes) return;
+                isRes = false;
+                document.removeEventListener('mousemove', doBoxResize);
+                document.removeEventListener('mouseup', stopBoxResize);
+                document.removeEventListener('touchmove', doBoxResize);
+                document.removeEventListener('touchend', stopBoxResize);
+            }
+            resizeH.addEventListener('mousedown', startBoxResize);
+            resizeH.addEventListener('touchstart', startBoxResize, { passive: true });
+
+
+        }
+
+        // Abrir editor de imagem para uma caixa flutuante
+        function openBoxEditor(box, boxCanvas) {
+            const fakeContainer = {
+                _isBox: true,
+                _box: box,
+                _boxCanvas: boxCanvas,
+                querySelector: function(sel) {
+                    if (sel === 'img') {
+                        return { src: boxCanvas.toDataURL('image/png'), _fakeImg: true };
+                    }
+                }
+            };
+
+            currentEditingContainer = fakeContainer;
+
+            // Escalar para resolução maior para edição confortável (mínimo 600px largura)
+            const dataURL = boxCanvas.toDataURL('image/png');
+            const tempImg = new Image();
+            tempImg.onload = function() {
+                const scale = Math.max(1, Math.ceil(600 / boxCanvas.width));
+                editorCanvas.width  = boxCanvas.width  * scale;
+                editorCanvas.height = boxCanvas.height * scale;
+                ctx.imageSmoothingEnabled = false;
+                ctx.drawImage(tempImg, 0, 0, editorCanvas.width, editorCanvas.height);
+                originalImageData = ctx.getImageData(0, 0, editorCanvas.width, editorCanvas.height);
+                document.querySelector('.container').style.overflowY = 'hidden';
+                editorOverlay.classList.add('active');
+            };
+            tempImg.src = dataURL;
+        }
+
+        // Câmera traseira — mesmo handler do imageInput
+        const cameraInput = document.getElementById('cameraInput');
+        cameraInput.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                showStatus('Processando imagem... ⏳');
+                const reader = new FileReader();
+                reader.onload = async function(event) {
+                    try {
+                        const compressedForDisplay = await compressImageForDisplay(event.target.result, 1024);
+                        const cursorPosition = notepad.selectionStart;
+                        const textBeforeCursor = notepad.value.substring(0, cursorPosition);
+                        const lines = textBeforeCursor.split('\n');
+                        const currentLineNumber = lines.length;
+                        const lineHeight = 25.6;
+                        const topPadding = 20;
+                        const yPosition = topPadding + (currentLineNumber * lineHeight) + 10;
+                        const xPosition = 60;
+                        const maxWidth = 175;
+                        await createDraggableImage(compressedForDisplay, xPosition, yPosition, maxWidth);
+                    } catch (err) {
+                        showStatus('Erro ao adicionar imagem ❌');
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+            cameraInput.value = '';
+        });
+
+        // Câmera traseira via MediaDevices API
+        function openRearCamera() {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                background: #000; z-index: 99999;
+                display: flex; flex-direction: column;
+            `;
+
+            const videoWrapper = document.createElement('div');
+            videoWrapper.style.cssText = `
+                flex: 1; overflow: hidden; position: relative;
+                display: flex; align-items: center; justify-content: center;
+            `;
+
+            const video = document.createElement('video');
+            video.style.cssText = `
+                width: 100%; height: 100%; object-fit: cover;
+                transform-origin: center center;
+            `;
+            video.setAttribute('playsinline', '');
+            video.setAttribute('autoplay', '');
+            video.setAttribute('muted', '');
+
+            videoWrapper.appendChild(video);
+
+            const zoomBar = document.createElement('div');
+            zoomBar.style.cssText = `
+                position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+                display: flex; align-items: center; gap: 10px;
+                background: rgba(0,0,0,0.55); border-radius: 30px; padding: 8px 16px;
+            `;
+
+            const zoomOut = document.createElement('button');
+            zoomOut.textContent = '−';
+            zoomOut.style.cssText = `
+                width: 38px; height: 38px; border-radius: 50%;
+                background: rgba(255,255,255,0.2); color: white; border: none;
+                font-size: 22px; font-weight: bold; cursor: pointer; line-height: 1;
+            `;
+
+            const zoomLabel = document.createElement('span');
+            zoomLabel.style.cssText = 'color: white; font-size: 15px; min-width: 40px; text-align: center;';
+            zoomLabel.textContent = '1×';
+
+            const zoomIn = document.createElement('button');
+            zoomIn.textContent = '+';
+            zoomIn.style.cssText = `
+                width: 38px; height: 38px; border-radius: 50%;
+                background: rgba(255,255,255,0.2); color: white; border: none;
+                font-size: 22px; font-weight: bold; cursor: pointer; line-height: 1;
+            `;
+
+            zoomBar.appendChild(zoomOut);
+            zoomBar.appendChild(zoomLabel);
+            zoomBar.appendChild(zoomIn);
+            videoWrapper.appendChild(zoomBar);
+
+            const btnBar = document.createElement('div');
+            btnBar.style.cssText = `
+                display: flex; gap: 0; padding: 0;
+                justify-content: stretch; align-items: stretch;
+                background: #111; width: 100%;
+            `;
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '✕ Cancelar';
+            cancelBtn.style.cssText = `
+                flex: 1; padding: 22px 10px; background: #f44336; color: white;
+                border: none; border-radius: 0; font-size: 20px;
+                font-weight: bold; cursor: pointer;
+            `;
+
+            const captureBtn = document.createElement('button');
+            captureBtn.textContent = '📸 Tirar foto';
+            captureBtn.style.cssText = `
+                flex: 1; padding: 22px 10px; background: #4CAF50; color: white;
+                border: none; border-radius: 0; font-size: 20px;
+                font-weight: bold; cursor: pointer;
+            `;
+
+            btnBar.appendChild(cancelBtn);
+            btnBar.appendChild(captureBtn);
+            overlay.appendChild(videoWrapper);
+            overlay.appendChild(btnBar);
+            document.body.appendChild(overlay);
+
+            let stream = null;
+            let currentZoom = 1;
+            let minZoom = 1;
+            let maxZoom = 5;
+            let useNativeZoom = false;
+
+            function applyZoom(z) {
+                currentZoom = Math.max(minZoom, Math.min(maxZoom, z));
+                zoomLabel.textContent = currentZoom.toFixed(1).replace('.0', '') + '×';
+                if (useNativeZoom && stream) {
+                    const track = stream.getVideoTracks()[0];
+                    if (track && track.applyConstraints) {
+                        track.applyConstraints({ advanced: [{ zoom: currentZoom }] }).catch(() => {
+                            video.style.transform = `scale(${currentZoom})`;
+                        });
+                        return;
+                    }
+                }
+                video.style.transform = `scale(${currentZoom})`;
+            }
+
+            zoomIn.addEventListener('click', () => applyZoom(currentZoom + 0.5));
+            zoomOut.addEventListener('click', () => applyZoom(currentZoom - 0.5));
+
+            let lastPinchDist = null;
+            videoWrapper.addEventListener('touchmove', function(e) {
+                if (e.touches.length === 2) {
+                    e.preventDefault();
+                    const dx = e.touches[0].clientX - e.touches[1].clientX;
+                    const dy = e.touches[0].clientY - e.touches[1].clientY;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (lastPinchDist !== null) {
+                        const delta = (dist - lastPinchDist) / 80;
+                        applyZoom(currentZoom + delta);
+                    }
+                    lastPinchDist = dist;
+                }
+            }, { passive: false });
+            videoWrapper.addEventListener('touchend', () => { lastPinchDist = null; });
+
+            function stopCamera() {
+                if (stream) stream.getTracks().forEach(t => t.stop());
+                if (document.body.contains(overlay)) document.body.removeChild(overlay);
+            }
+
+            function startStream(constraints) {
+                navigator.mediaDevices.getUserMedia(constraints)
+                    .then(function(s) {
+                        stream = s;
+                        video.srcObject = stream;
+                        const track = s.getVideoTracks()[0];
+                        if (track) {
+                            const caps = track.getCapabilities ? track.getCapabilities() : {};
+                            if (caps.zoom) {
+                                useNativeZoom = true;
+                                minZoom = caps.zoom.min || 1;
+                                maxZoom = caps.zoom.max || 5;
+                                currentZoom = caps.zoom.min || 1;
+                            }
+                        }
+                    })
+                    .catch(function() {
+                        if (constraints.video && constraints.video.facingMode) {
+                            startStream({ video: true });
+                        } else {
+                            stopCamera();
+                            showStatus('Permissão de câmera negada ❌');
+                        }
+                    });
+            }
+
+            startStream({
+                video: {
+                    facingMode: { ideal: 'environment' },
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                }
+            });
+
+            captureBtn.addEventListener('click', async function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth || 1280;
+                canvas.height = video.videoHeight || 720;
+                const c2d = canvas.getContext('2d');
+                if (!useNativeZoom && currentZoom > 1) {
+                    const sw = canvas.width / currentZoom;
+                    const sh = canvas.height / currentZoom;
+                    const sx = (canvas.width - sw) / 2;
+                    const sy = (canvas.height - sh) / 2;
+                    c2d.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+                } else {
+                    c2d.drawImage(video, 0, 0);
+                }
+                stopCamera();
+                const dataURL = canvas.toDataURL('image/jpeg', 0.92);
+                showStatus('Processando imagem... ⏳');
+                try {
+                    const compressed = await compressImageForDisplay(dataURL, 1024);
+                    const cursorPosition = notepad.selectionStart;
+                    const lines = notepad.value.substring(0, cursorPosition).split('\n');
+                    const yPosition = 20 + (lines.length * 25.6) + 10;
+                    await createDraggableImage(compressed, 60, yPosition, 175);
+                    showStatus('Foto adicionada! 📷');
+                } catch(err) {
+                    showStatus('Erro ao processar foto ❌');
+                }
+            });
+
+            cancelBtn.addEventListener('click', stopCamera);
+        }
+
+        // Inserir planeta terra
+        // Clique rápido: nova linha + 🌍 + espaço
+        // Segurar: 🌍 na mesma linha com espaços
+        function insertEarthNewLine() {
+            const start = notepad.selectionStart;
+            const end = notepad.selectionEnd;
+            const text = notepad.value;
+
+            // Verifica se a linha atual está vazia
+            const before = text.substring(0, start);
+            const lineStart = before.lastIndexOf('\n') + 1;
+            const currentLine = before.substring(lineStart);
+            const lineIsEmpty = currentLine.trim() === '';
+
+            const insert = lineIsEmpty ? '🌍 ' : '\n🌍 ';
+            notepad.value = before + insert + text.substring(end);
+            const newPosition = start + insert.length;
+            notepad.setSelectionRange(newPosition, newPosition);
+            notepad.focus();
+            lastQuickInsert = { wasNewLine: !lineIsEmpty };
+            localStorage.setItem('myNote', notepad.value);
+        }
+
+        function insertEarthInline() {
+            const start = notepad.selectionStart;
+            const end = notepad.selectionEnd;
+            const text = notepad.value;
+            const insert = '  🌍  ';
+            notepad.value = text.substring(0, start) + insert + text.substring(end);
+            const newPosition = start + insert.length;
+            notepad.setSelectionRange(newPosition, newPosition);
+            notepad.focus();
+            localStorage.setItem('myNote', notepad.value);
+        }
+
+        // Long press no botão da terra
+        (function() {
+            const btn = document.getElementById('earthBtn');
+            let pressTimer = null;
+            let longPressTriggered = false;
+
+            btn.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                longPressTriggered = false;
+                pressTimer = setTimeout(function() {
+                    longPressTriggered = true;
+                    insertEarthInline();
+                }, 500);
+            }, { passive: false });
+
+            btn.addEventListener('touchend', function() {
+                clearTimeout(pressTimer);
+                if (!longPressTriggered) {
+                    insertEarthNewLine();
+                }
+                longPressTriggered = false;
+            });
+
+            btn.addEventListener('touchcancel', function() {
+                clearTimeout(pressTimer);
+                longPressTriggered = false;
+            });
+
+            btn.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                longPressTriggered = false;
+                pressTimer = setTimeout(function() {
+                    longPressTriggered = true;
+                    insertEarthInline();
+                }, 500);
+            });
+
+            btn.addEventListener('mouseup', function() { clearTimeout(pressTimer); });
+            btn.addEventListener('mouseleave', function() { clearTimeout(pressTimer); });
+
+            btn.addEventListener('click', function() {
+                if (!longPressTriggered) {
+                    insertEarthNewLine();
+                }
+                longPressTriggered = false;
+            });
+        })();
+
+        // Inserir coração preto
+        // Clique simples: nova linha + 🖤 (sem espaço antes)
+        // Segurar: 🖤 na mesma linha com espaços (comportamento antigo)
+        function insertBlackHeartNewLine() {
+            const start = notepad.selectionStart;
+            const end = notepad.selectionEnd;
+            const text = notepad.value;
+            const before = text.substring(0, start);
+            const after = text.substring(end);
+
+            // Verifica se a linha atual está vazia
+            const lineStart = before.lastIndexOf('\n') + 1;
+            const currentLine = before.substring(lineStart);
+            const lineIsEmpty = currentLine.trim() === '';
+
+            const insert = lineIsEmpty ? '🖤 ' : '\n🖤 ';
+            notepad.value = before + insert + after;
+
+            const newPosition = start + insert.length;
+            notepad.setSelectionRange(newPosition, newPosition);
+            notepad.focus();
+
+            lastQuickInsert = { wasNewLine: !lineIsEmpty };
+            localStorage.setItem('myNote', notepad.value);
+        }
+
+        function insertBlackHeartInline() {
+            const start = notepad.selectionStart;
+            const end = notepad.selectionEnd;
+            const text = notepad.value;
+            const before = text.substring(0, start);
+            const after = text.substring(end);
+            
+            notepad.value = before + '  🖤  ' + after;
+            
+            const newPosition = start + 6;
+            notepad.setSelectionRange(newPosition, newPosition);
+            notepad.focus();
+            
+            localStorage.setItem('myNote', notepad.value);
+        }
+
+        // Long press no botão do coração
+        (function() {
+            const btn = document.getElementById('heartBtn');
+            let pressTimer = null;
+            let longPressTriggered = false;
+
+            btn.addEventListener('touchstart', function(e) {
+                e.preventDefault(); // Mantém foco no textarea (teclado aberto)
+                longPressTriggered = false;
+                pressTimer = setTimeout(function() {
+                    longPressTriggered = true;
+                    insertBlackHeartInline();
+                }, 500);
+            }, { passive: false });
+
+            btn.addEventListener('touchend', function(e) {
+                clearTimeout(pressTimer);
+                if (!longPressTriggered) {
+                    // Toque rápido: aciona aqui (já que click foi bloqueado pelo preventDefault)
+                    insertBlackHeartNewLine();
+                }
+                longPressTriggered = false; // Reset sempre
+            });
+
+            btn.addEventListener('touchcancel', function() {
+                clearTimeout(pressTimer);
+                longPressTriggered = false;
+            });
+
+            // Mouse (desktop)
+            btn.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                longPressTriggered = false;
+                pressTimer = setTimeout(function() {
+                    longPressTriggered = true;
+                    insertBlackHeartInline();
+                }, 500);
+            });
+
+            btn.addEventListener('mouseup', function() {
+                clearTimeout(pressTimer);
+            });
+
+            btn.addEventListener('mouseleave', function() {
+                clearTimeout(pressTimer);
+            });
+
+            btn.addEventListener('click', function(e) {
+                // No desktop (mouse), click ainda funciona normalmente
+                if (!longPressTriggered) {
+                    insertBlackHeartNewLine();
+                }
+                longPressTriggered = false;
+            });
+        })();
+
+        // Salvar manualmente
+        async function saveNote() {
+            localStorage.setItem('myNote', notepad.value);
+            saveImages();
+            
+            // Salvar imagens comprimidas no localStorage também
+            try {
+                const imageContainers = document.querySelectorAll('.image-container');
+                const compressedImages = [];
+                
+                for (const container of imageContainers) {
+                    const img = container.querySelector('img');
+                    if (img) {
+                        // Comprimir imagem
+                        const compressedSrc = await compressImage(img.src, 450);
+                        
+                        compressedImages.push({
+                            src: compressedSrc,
+                            width: img.width,
+                            height: img.height,
+                            x: parseFloat(container.getAttribute('data-x')) || 0,
+                            y: parseFloat(container.getAttribute('data-y')) || 0
+                        });
+                    }
+                }
+                
+                if (compressedImages.length > 0) {
+                    localStorage.setItem('myImages', JSON.stringify(compressedImages));
+                }
+                
+                showStatus('Anotação e imagens salvas! ✓');
+            } catch (err) {
+                console.error('Erro ao salvar imagens:', err);
+                showStatus('Texto salvo! (erro ao salvar imagens)');
+            }
+        }
+
+        // Copiar texto e imagens
+        async function copyNote() {
+            try {
+                const text = notepad.value;
+                const images = document.querySelectorAll('.image-container img');
+                
+                // Criar um HTML com texto e imagens
+                let htmlContent = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Arial, sans-serif; white-space: pre-wrap;">';
+                htmlContent += text.replace(/\n/g, '<br>');
+                htmlContent += '</div>';
+                
+                // Adicionar imagens ao HTML
+                images.forEach(img => {
+                    htmlContent += `<img src="${img.src}" style="max-width: 100%; margin: 20px 0; border: 2px solid #ddd; border-radius: 8px;">`;
+                });
+                
+                // Criar blob com HTML
+                const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+                const textBlob = new Blob([text], { type: 'text/plain' });
+                
+                // Copiar para clipboard com múltiplos formatos
+                const clipboardItem = new ClipboardItem({
+                    'text/html': htmlBlob,
+                    'text/plain': textBlob
+                });
+                
+                await navigator.clipboard.write([clipboardItem]);
+                showStatus('Texto e imagens copiados! ✓');
+            } catch (err) {
+                console.error('Erro ao copiar:', err);
+                // Fallback: copiar apenas texto
+                const text = notepad.value;
+                navigator.clipboard.writeText(text).then(() => {
+                    showStatus('Texto copiado (imagens não suportadas)');
+                }).catch(() => {
+                    notepad.select();
+                    document.execCommand('copy');
+                    showStatus('Texto copiado (imagens não suportadas)');
+                });
+            }
+        }
+
+        // Abrir teclado no cursor atual
+        function focusKeyboard() {
+            // Salvar posição do cursor antes do foco
+            const pos = notepad.selectionStart;
+            notepad.blur();
+            setTimeout(function() {
+                notepad.focus();
+                notepad.setSelectionRange(pos, pos);
+            }, 50);
+        }
+
+        // Limpar anotações
+        function clearNote() {
+            if (confirm('Tem certeza que deseja limpar todas as anotações e imagens?')) {
+                notepad.value = '\n'.repeat(20);
+                localStorage.setItem('myNote', notepad.value);
+                localStorage.removeItem('myImages');
+                document.querySelectorAll('.image-container').forEach(c => c.remove());
+                currentActiveImage = null;
+                notepad.setSelectionRange(0, 0);
+                notepad.focus();
+                autoResizeTextarea();
+                updateWrapperHeight();
+                showStatus('Anotações limpas!');
+            }
+        }
+
+        // Adicionar 5 linhas vazias
+        function addSpacing() {
+            const start = notepad.selectionStart;
+            const end = notepad.selectionEnd;
+            const text = notepad.value;
+            const before = text.substring(0, start);
+            const after = text.substring(end);
+            
+            const spacing = '\n'.repeat(5);
+            
+            notepad.value = before + spacing + after;
+            
+            const newPosition = start + spacing.length;
+            notepad.setSelectionRange(newPosition, newPosition);
+            notepad.focus();
+            
+            localStorage.setItem('myNote', notepad.value);
+            autoResizeTextarea();
+            updateWrapperHeight();
+            showStatus('5 linhas adicionadas! 📏');
+        }
+
+        // Mostrar mensagem de status
+        function showStatus(message) {
+            status.textContent = message;
+            status.style.display = 'block';
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+
+        // Capturar página inteira como imagem
+        async function takeScreenshot() {
+            showStatus('Capturando página... 📸');
+            
+            // Esconder a toolbar temporariamente
+            const toolbar = document.querySelector('.toolbar');
+            const statusEl = document.querySelector('.status');
+            toolbar.style.display = 'none';
+            statusEl.style.display = 'none';
+            
+            try {
+                // Capturar a página inteira
+                const canvas = await html2canvas(document.body, {
+                    scale: 2, // Qualidade maior
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    scrollY: -document.querySelector('.container').scrollTop,
+                    scrollX: 0,
+                    windowWidth: document.documentElement.scrollWidth,
+                    windowHeight: document.documentElement.scrollHeight
+                });
+                
+                // Mostrar toolbar novamente
+                toolbar.style.display = 'flex';
+                
+                // Converter canvas para blob
+                canvas.toBlob(async function(blob) {
+                    // Tentar compartilhar (funciona melhor no Android)
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'notas.png', { type: 'image/png' })] })) {
+                        try {
+                            const file = new File([blob], 'minhas-notas.png', { type: 'image/png' });
+                            await navigator.share({
+                                files: [file],
+                                title: 'Minhas Anotações',
+                                text: 'Captura das minhas anotações'
+                            });
+                            showStatus('Imagem compartilhada! ✓');
+                        } catch (err) {
+                            // Se cancelar o compartilhamento, mostra a imagem
+                            if (err.name !== 'AbortError') {
+                                showImagePreview(blob);
+                            }
+                        }
+                    } else {
+                        // Se não suportar share, mostra a imagem para salvar
+                        showImagePreview(blob);
+                    }
+                });
+            } catch (err) {
+                console.error('Erro ao capturar:', err);
+                toolbar.style.display = 'flex';
+                showStatus('Erro ao capturar imagem ❌');
+            }
+        }
+        
+        // Mostrar preview da imagem para salvar manualmente
+        function showImagePreview(blob) {
+            const url = URL.createObjectURL(blob);
+            
+            // Criar overlay com a imagem
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.95);
+                z-index: 99999;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            `;
+            
+            const instruction = document.createElement('div');
+            instruction.style.cssText = `
+                color: white;
+                font-size: 18px;
+                text-align: center;
+                margin-bottom: 20px;
+                padding: 15px;
+                background: rgba(76, 175, 80, 0.8);
+                border-radius: 10px;
+            `;
+            instruction.innerHTML = '📸 Segure na imagem e escolha "Salvar imagem"<br>ou "Baixar imagem"';
+            
+            const img = document.createElement('img');
+            img.src = url;
+            img.style.cssText = `
+                max-width: 100%;
+                max-height: 70vh;
+                border: 3px solid #4CAF50;
+                border-radius: 10px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            `;
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕ Fechar';
+            closeBtn.style.cssText = `
+                margin-top: 20px;
+                padding: 15px 30px;
+                background: #f44336;
+                color: white;
+                border: none;
+                border-radius: 25px;
+                font-size: 18px;
+                font-weight: bold;
+                cursor: pointer;
+            `;
+            closeBtn.onclick = () => {
+                document.body.removeChild(overlay);
+                URL.revokeObjectURL(url);
+            };
+            
+            overlay.appendChild(instruction);
+            overlay.appendChild(img);
+            overlay.appendChild(closeBtn);
+            document.body.appendChild(overlay);
+            
+            showStatus('Segure na imagem para salvar! 👆');
+        }
+
+        // Atalhos de teclado
+        // Flag para rastrear se o último toque rápido criou nova linha
+        let lastQuickInsert = null; // { pos, wasNewLine }
+
+        notepad.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveNote();
+            }
+
+            // Backspace logo após toque rápido de 🖤 ou 🌍 — apaga só emoji+espaço, mantém a linha
+            if (e.key === 'Backspace' && lastQuickInsert) {
+                const pos = notepad.selectionStart;
+                const text = notepad.value;
+
+                for (const emoji of ['🖤', '🌍']) {
+                    const withNewLine = '\n' + emoji + ' ';   // inserido em linha nova
+                    const withoutNewLine = emoji + ' ';       // inserido em linha já vazia
+
+                    if (lastQuickInsert.wasNewLine && text.substring(pos - withNewLine.length, pos) === withNewLine) {
+                        e.preventDefault();
+                        // Apaga só emoji + espaço (não o \n), cursor vai para início da linha
+                        const emojiAndSpace = emoji + ' ';
+                        const newPos = pos - emojiAndSpace.length;
+                        notepad.value = text.substring(0, newPos) + text.substring(pos);
+                        notepad.setSelectionRange(newPos, newPos);
+                        lastQuickInsert = null;
+                        return;
+                    } else if (!lastQuickInsert.wasNewLine && text.substring(pos - withoutNewLine.length, pos) === withoutNewLine) {
+                        e.preventDefault();
+                        // Linha estava vazia: apaga emoji + espaço, cursor no início da linha
+                        notepad.value = text.substring(0, pos - withoutNewLine.length) + text.substring(pos);
+                        const newPos = pos - withoutNewLine.length;
+                        notepad.setSelectionRange(newPos, newPos);
+                        lastQuickInsert = null;
+                        return;
+                    }
+                }
+
+                // Se o usuário já digitou algo após o emoji, cancela o rastreamento
+                lastQuickInsert = null;
+            } else if (e.key !== 'Backspace') {
+                // Qualquer outra tecla cancela o rastreamento
+                lastQuickInsert = null;
+            }
+        });
+
+        // Exportar backup em JSON
+        async function exportBackup() {
+            try {
+                // Coletar dados do texto
+                const text = notepad.value;
+                
+                // Coletar dados das imagens
+                const images = [];
+                const imageContainers = document.querySelectorAll('.image-container');
+                
+                imageContainers.forEach((container, index) => {
+                    const img = container.querySelector('img');
+                    if (img) {
+                        images.push({
+                            src: img.src,
+                            width: container.getAttribute('data-width') || img.width,
+                            x: container.getAttribute('data-x') || parseFloat(container.style.left) || 100,
+                            y: container.getAttribute('data-y') || parseFloat(container.style.top) || 100,
+                            index: index
+                        });
+                    }
+                });
+                
+                // Criar objeto de backup
+                const backup = {
+                    version: '1.0',
+                    date: new Date().toISOString(),
+                    text: text,
+                    images: images
+                };
+                
+                // Converter para JSON
+                const jsonString = JSON.stringify(backup, null, 2);
+                
+                // Criar blob
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                
+                // Criar nome do arquivo com data
+                const now = new Date();
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = now.getFullYear();
+                const filename = `BACKUP_NOTAS_FACULDADE_${day}-${month}-${year}.json`;
+                
+                // Tentar usar a File System Access API (Chrome Android 108+)
+                if ('showSaveFilePicker' in window) {
+                    try {
+                        const options = {
+                            suggestedName: filename,
+                            types: [{
+                                description: 'JSON Files',
+                                accept: { 'application/json': ['.json'] }
+                            }]
+                        };
+                        
+                        const handle = await window.showSaveFilePicker(options);
+                        const writable = await handle.createWritable();
+                        await writable.write(blob);
+                        await writable.close();
+                        
+                        showStatus(`Backup exportado! 📦 (${images.length} imagens)`);
+                        return;
+                    } catch (err) {
+                        // Usuário cancelou ou erro - vamos usar fallback
+                        if (err.name !== 'AbortError') {
+                            console.log('Erro ao usar showSaveFilePicker:', err);
+                        } else {
+                            return; // Usuário cancelou
+                        }
+                    }
+                }
+                
+                // Fallback para navegadores que não suportam ou se usuário cancelou
+                // Tenta usar Web Share API (disponível no Android)
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'test.json')] })) {
+                    try {
+                        const file = new File([blob], filename, { type: 'application/json' });
+                        
+                        await navigator.share({
+                            files: [file],
+                            title: 'Exportar Backup',
+                            text: 'Arquivo de backup das notas da faculdade'
+                        });
+                        
+                        showStatus(`Arquivo compartilhado! 📦 (${images.length} imagens)`);
+                        return;
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            console.log('Erro ao compartilhar:', err);
+                        } else {
+                            return; // Usuário cancelou
+                        }
+                    }
+                }
+                
+                // Fallback final: download tradicional
+                const url = URL.createObjectURL(blob);
+                
+                // Criar link temporário para download
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showStatus(`Backup exportado! 📦 (${images.length} imagens)`);
+            } catch (err) {
+                console.error('Erro ao exportar backup:', err);
+                showStatus('Erro ao exportar backup ❌');
+            }
+        }
+
+        // Backup automático silencioso (sem notificação)
+        function autoBackup() {
+            try {
+                // Coletar dados do texto
+                const text = notepad.value;
+                
+                // Coletar dados das imagens
+                const images = [];
+                const imageContainers = document.querySelectorAll('.image-container');
+                
+                imageContainers.forEach((container, index) => {
+                    const img = container.querySelector('img');
+                    if (img) {
+                        images.push({
+                            src: img.src,
+                            width: container.getAttribute('data-width') || img.width,
+                            x: container.getAttribute('data-x') || parseFloat(container.style.left) || 100,
+                            y: container.getAttribute('data-y') || parseFloat(container.style.top) || 100,
+                            index: index
+                        });
+                    }
+                });
+                
+                // Criar objeto de backup
+                const backup = {
+                    version: '1.0',
+                    date: new Date().toISOString(),
+                    text: text,
+                    images: images
+                };
+                
+                // Converter para JSON
+                const jsonString = JSON.stringify(backup, null, 2);
+                
+                // Criar blob e download
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                // Criar nome do arquivo com data
+                const now = new Date();
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const year = now.getFullYear();
+                const filename = `BACKUP_NOTAS_FACULDADE_${day}-${month}-${year}.json`;
+                
+                // Criar link temporário para download (silencioso)
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                // Sem notificação visual
+            } catch (err) {
+                console.error('Erro no backup automático:', err);
+                // Falha silenciosa, sem notificação ao usuário
+            }
+        }
+
+        // Iniciar backup automático a cada 6 minutos (360000 ms)
+        setInterval(autoBackup, 360000);
+
+        // Função para comprimir imagem para menos de 450KB
+        async function compressImage(imageSrc, maxSizeKB = 450) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Calcular redimensionamento inicial
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // Se a imagem for muito grande, reduzir dimensões primeiro
+                    const maxDimension = 1200;
+                    if (width > maxDimension || height > maxDimension) {
+                        const ratio = Math.min(maxDimension / width, maxDimension / height);
+                        width = Math.floor(width * ratio);
+                        height = Math.floor(height * ratio);
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Tentar com qualidade 0.6
+                    let result = canvas.toDataURL('image/jpeg', 0.6);
+                    let sizeKB = (result.length * 3) / 4 / 1024;
+                    
+                    // Se ainda estiver grande, reduzir mais
+                    if (sizeKB > maxSizeKB) {
+                        result = canvas.toDataURL('image/jpeg', 0.4);
+                        sizeKB = (result.length * 3) / 4 / 1024;
+                    }
+                    
+                    // Se AINDA estiver grande, reduzir dimensões
+                    if (sizeKB > maxSizeKB) {
+                        width = Math.floor(width * 0.6);
+                        height = Math.floor(height * 0.6);
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        result = canvas.toDataURL('image/jpeg', 0.5);
+                    }
+                    
+                    resolve(result);
+                };
+                
+                img.onerror = function() {
+                    resolve(imageSrc);
+                };
+                
+                img.src = imageSrc;
+            });
+        }
+
+        // Função para comprimir imagem para EXIBIÇÃO (1MB - mais rápido e melhor qualidade visual)
+        async function compressImageForDisplay(imageSrc, maxSizeKB = 1024) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Calcular redimensionamento inicial baseado no tamanho da imagem
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // Se a imagem for muito grande, reduzir dimensões primeiro (otimização)
+                    const maxDimension = 1500; // Máximo 1500px
+                    if (width > maxDimension || height > maxDimension) {
+                        const ratio = Math.min(maxDimension / width, maxDimension / height);
+                        width = Math.floor(width * ratio);
+                        height = Math.floor(height * ratio);
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Tentar com qualidade 0.7 primeiro (boa qualidade, bom tamanho)
+                    let result = canvas.toDataURL('image/jpeg', 0.7);
+                    let sizeKB = (result.length * 3) / 4 / 1024;
+                    
+                    // Se ainda estiver muito grande, tentar qualidade 0.5
+                    if (sizeKB > maxSizeKB) {
+                        result = canvas.toDataURL('image/jpeg', 0.5);
+                        sizeKB = (result.length * 3) / 4 / 1024;
+                    }
+                    
+                    // Se AINDA estiver grande, reduzir dimensões mais
+                    if (sizeKB > maxSizeKB) {
+                        width = Math.floor(width * 0.7);
+                        height = Math.floor(height * 0.7);
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        result = canvas.toDataURL('image/jpeg', 0.6);
+                    }
+                    
+                    resolve(result);
+                };
+                
+                img.onerror = function() {
+                    resolve(imageSrc); // Retornar original se houver erro
+                };
+                
+                img.src = imageSrc;
+            });
+        }
+
+        // Salvar texto E imagens comprimidas no localStorage a cada 1 minuto (60000 ms)
+        setInterval(async function() {
+            try {
+                // Salvar texto
+                localStorage.setItem('myNote', notepad.value);
+                
+                // Salvar imagens comprimidas
+                const imageContainers = document.querySelectorAll('.image-container');
+                const compressedImages = [];
+                
+                for (const container of imageContainers) {
+                    const img = container.querySelector('img');
+                    if (img) {
+                        // Comprimir imagem
+                        const compressedSrc = await compressImage(img.src, 450);
+                        
+                        compressedImages.push({
+                            src: compressedSrc,
+                            width: img.width,
+                            height: img.height,
+                            x: parseFloat(container.getAttribute('data-x')) || 0,
+                            y: parseFloat(container.getAttribute('data-y')) || 0
+                        });
+                    }
+                }
+                
+                if (compressedImages.length > 0) {
+                    localStorage.setItem('myImages', JSON.stringify(compressedImages));
+                }
+                
+            } catch (err) {
+                console.error('Erro ao salvar no localStorage:', err);
+                // Se estourar o limite de storage, tentar salvar apenas o texto
+                try {
+                    localStorage.setItem('myNote', notepad.value);
+                } catch (e) {
+                    console.error('Erro crítico ao salvar texto:', e);
+                }
+            }
+        }, 60000);
+
+        // Importar backup do JSON
+        const importInput = document.getElementById('importInput');
+        
+        importInput.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            
+            reader.onload = async function(event) {
+                try {
+                    const backup = JSON.parse(event.target.result);
+                    
+                    // Validar estrutura do backup
+                    if (!backup.version || backup.text === undefined) {
+                        throw new Error('Formato de backup inválido');
+                    }
+                    
+                    // Confirmar importação
+                    if (!confirm(`Importar backup de ${new Date(backup.date).toLocaleString()}?\n\nIsso substituirá todas as anotações atuais.`)) {
+                        importInput.value = '';
+                        return;
+                    }
+                    
+                    showStatus('Importando backup... ⏳');
+                    
+                    // Limpar dados atuais
+                    document.querySelectorAll('.image-container').forEach(c => c.remove());
+                    currentActiveImage = null;
+                    
+                    // Restaurar texto
+                    notepad.value = backup.text;
+                    localStorage.setItem('myNote', backup.text);
+                    
+                    // Restaurar imagens usando createDraggableImage
+                    if (backup.images && backup.images.length > 0) {
+                        for (const imgData of backup.images) {
+                            const x = parseFloat(imgData.x) || parseFloat(imgData.left) || 100;
+                            const y = parseFloat(imgData.y) || parseFloat(imgData.top) || 100;
+                            const width = parseFloat(imgData.width) || 175;
+                            
+                            await createDraggableImage(imgData.src, x, y, width);
+                        }
+                        
+                        showStatus(`Backup importado! ✓ (${backup.images.length} imagens)`);
+                    } else {
+                        showStatus('Backup importado! ✓');
+                    }
+                    
+                    autoResizeTextarea();
+                    updateWrapperHeight();
+                    
+                } catch (err) {
+                    console.error('Erro ao importar backup:', err);
+                    alert('Erro ao importar backup!\n\nVerifique se o arquivo é um backup válido.');
+                    showStatus('Erro ao importar backup ❌');
+                }
+                
+                // Limpar input
+                importInput.value = '';
+            };
+            
+            reader.onerror = function() {
+                showStatus('Erro ao ler arquivo ❌');
+                importInput.value = '';
+            };
+            
+            reader.readAsText(file);
+        });
+        // Registrar Service Worker (PWA - evita recarregamento)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./service-worker.js')
+                .then(function(reg) { console.log('SW registrado:', reg.scope); })
+                .catch(function(err) { console.error('SW erro:', err); });
+        }
+    </script>
+</body>
+</html>
